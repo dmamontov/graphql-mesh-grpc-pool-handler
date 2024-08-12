@@ -1,6 +1,6 @@
 {
   "name": "@dmamontov/graphql-mesh-grpc-pool-handler",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "Dmitry Mamontov",
   "type": "module",
   "repository": {
@@ -48,6 +48,7 @@
     "@graphql-tools/utils": "^10.1.1",
     "@grpc/grpc-js": "^1.1.7",
     "@grpc/proto-loader": "^0.7.8",
+    "@q42philips/node-grpc-error-details": "^2.1.0",
     "generic-pool": "^3.9.0",
     "globby": "^11.1.0",
     "graphql": "*",

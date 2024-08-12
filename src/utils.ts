@@ -11,6 +11,7 @@ import {
     type ClientUnaryCall,
     type MetadataValue,
 } from '@grpc/grpc-js';
+import { deserializeGoogleGrpcStatusDetails } from '@q42philips/node-grpc-error-details';
 import { getGraphQLScalar, isScalarType } from './scalars';
 
 export function getTypeName(
@@ -98,7 +99,7 @@ export async function addMetaDataToCall(
             ...callFnArguments,
             (error: Error, response: ClientUnaryCall | ClientReadableStream<unknown>) => {
                 if (error) {
-                    reject(error);
+                    reject(modifyReason(error));
                 }
                 resolve(response);
             },
@@ -118,4 +119,30 @@ export async function addMetaDataToCall(
             }
         }
     });
+}
+
+function modifyReason(error: Error): Error {
+    const grpcErrorDetails = deserializeGoogleGrpcStatusDetails(error as any);
+    if (!grpcErrorDetails) {
+        return error;
+    }
+
+    const { details: detailsInfo } = grpcErrorDetails;
+    if (detailsInfo.length <= 0) {
+        return error;
+    }
+
+    const details = detailsInfo[0].toObject() as any;
+    if (!details?.reason) {
+        return error;
+    }
+
+    const match = error.message.match(/^(\d+\s[A-Z_]+)(:\s.*)$/);
+    if (!match) {
+        return error;
+    }
+
+    error.message = match[1] + '(' + details.reason + ')' + match[2];
+
+    return error;
 }
