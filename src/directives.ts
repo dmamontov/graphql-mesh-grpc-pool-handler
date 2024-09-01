@@ -1,10 +1,5 @@
-import {
-    DirectiveLocation,
-    GraphQLBoolean,
-    GraphQLDirective,
-    GraphQLScalarType,
-    GraphQLString,
-} from 'graphql';
+import { DirectiveLocation, GraphQLBoolean, GraphQLDirective, GraphQLString } from 'graphql';
+import { ObjMapScalar } from '@graphql-mesh/transport-common';
 
 export const grpcMethodDirective = new GraphQLDirective({
     name: 'grpcMethod',
@@ -45,19 +40,6 @@ export const EnumDirective = new GraphQLDirective({
         value: {
             type: GraphQLString,
         },
-    },
-});
-
-export const ObjMapScalar = new GraphQLScalarType({
-    name: 'ObjMap',
-    serialize: value => JSON.stringify(value),
-    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-    parseValue: value => JSON.parse(value.toString()),
-    parseLiteral: ast => {
-        if (ast.kind === 'StringValue') {
-            return JSON.parse(ast.value);
-        }
-        return null;
     },
 });
 

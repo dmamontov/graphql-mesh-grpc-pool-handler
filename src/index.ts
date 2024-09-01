@@ -1,19 +1,15 @@
 /* eslint-disable import/no-duplicates */
+
+/* eslint-disable import/no-duplicates */
 import genericPool from 'generic-pool';
 import globby from 'globby';
-import {
-    buildSchema,
-    isEnumType,
-    specifiedDirectives,
-    type GraphQLFieldResolver,
-    type GraphQLScalarType,
-    type GraphQLSchema,
-} from 'graphql';
-import {
-    SchemaComposer,
-    type EnumTypeComposerValueConfigDefinition,
-    type ObjectTypeComposerFieldConfigAsObjectDefinition,
+import type { GraphQLFieldResolver, GraphQLScalarType, GraphQLSchema } from 'graphql';
+import { buildSchema, isEnumType, specifiedDirectives } from 'graphql';
+import type {
+    EnumTypeComposerValueConfigDefinition,
+    ObjectTypeComposerFieldConfigAsObjectDefinition,
 } from 'graphql-compose';
+import { SchemaComposer } from 'graphql-compose';
 import {
     GraphQLBigInt,
     GraphQLByte,
@@ -23,26 +19,23 @@ import {
 } from 'graphql-scalars';
 import lodashGet from 'lodash.get';
 import lodashHas from 'lodash.has';
-import protobufjs, {
-    type AnyNestedObject,
-    type IParseOptions,
-    type Message,
-    type RootConstructor,
-} from 'protobufjs';
-import { type IFileDescriptorSet } from 'protobufjs/ext/descriptor';
+import type { AnyNestedObject, IParseOptions, Message, RootConstructor } from 'protobufjs';
+import protobufjs from 'protobufjs';
+import type { IFileDescriptorSet } from 'protobufjs/ext/descriptor';
 import descriptor from 'protobufjs/ext/descriptor/index.js';
 import { Client } from '@ardatan/grpc-reflection-js';
 import { fs, path, process } from '@graphql-mesh/cross-helpers';
-import { PredefinedProxyOptions, type StoreProxy } from '@graphql-mesh/store';
+import type { StoreProxy } from '@graphql-mesh/store';
+import { PredefinedProxyOptions } from '@graphql-mesh/store';
 import { stringInterpolator } from '@graphql-mesh/string-interpolation';
-import {
-    type GetMeshSourcePayload,
-    type ImportFn,
-    type Logger,
-    type MeshFetch,
-    type MeshHandler,
-    type MeshHandlerOptions,
-    type MeshPubSub,
+import type {
+    GetMeshSourcePayload,
+    ImportFn,
+    Logger,
+    MeshFetch,
+    MeshHandler,
+    MeshHandlerOptions,
+    MeshPubSub,
 } from '@graphql-mesh/types';
 import { readFileOrUrl } from '@graphql-mesh/utils';
 import {
@@ -51,21 +44,22 @@ import {
     getRootTypes,
     GraphQLStreamDirective,
 } from '@graphql-tools/utils';
-import { credentials, loadPackageDefinition, type ChannelCredentials } from '@grpc/grpc-js';
-import { type ServiceClient } from '@grpc/grpc-js/build/src/make-client.js';
+import type { ChannelCredentials } from '@grpc/grpc-js';
+import { credentials, loadPackageDefinition } from '@grpc/grpc-js';
+import type { ServiceClient } from '@grpc/grpc-js/build/src/make-client.js';
 import { fromJSON } from '@grpc/proto-loader';
 import {
     EnumDirective,
     grpcConnectivityStateDirective,
     grpcMethodDirective,
     grpcRootJsonDirective,
-    ObjMapScalar,
-} from './directives';
-import './patchLongJs';
+} from './directives.js';
+import './patchLongJs.js';
 import { resolvers as scalarResolvers } from 'graphql-scalars';
-import { addExecutionLogicToScalar } from './scalars';
+import { ObjMapScalar } from '@graphql-mesh/transport-common';
+import { addExecutionLogicToScalar } from './scalars.js';
 import { type GrpcPoolHandler } from './types';
-import { addIncludePathResolver, addMetaDataToCall, getTypeName } from './utils';
+import { addIncludePathResolver, addMetaDataToCall, getTypeName } from './utils.js';
 
 const { Root } = protobufjs;
 
@@ -469,7 +463,6 @@ export default class GrpcHandler implements MeshHandler {
                                 const { rootJsonName, objPath, methodName, responseStream } =
                                     directiveObj.args;
                                 const grpcObject = grpcObjectByRootJsonName.get(rootJsonName);
-
                                 const pool = this.getServiceClientPool({
                                     grpcObject,
                                     objPath,
@@ -523,6 +516,15 @@ export default class GrpcHandler implements MeshHandler {
                             if (enumSerializedValue) {
                                 const serializedValue = JSON.parse(enumSerializedValue);
                                 value.value = serializedValue;
+                                let valueLookup = (type as any)._valueLookup;
+                                if (!valueLookup) {
+                                    valueLookup = new Map(
+                                        type
+                                            .getValues()
+                                            .map(enumValue => [enumValue.value, enumValue]),
+                                    );
+                                    (type as any)._valueLookup = valueLookup;
+                                }
                                 (type as any)._valueLookup.set(serializedValue, value);
                             }
                         }
@@ -552,11 +554,7 @@ export default class GrpcHandler implements MeshHandler {
         const pathWithName = [...currentPath, ...name.split('.')].filter(Boolean);
         if ('nested' in nested) {
             for (const key in nested.nested) {
-                if (Array.isArray(currentPath)) {
-                    logger.debug(`Visiting ${currentPath.join('.')}.nested[${key}]`);
-                } else {
-                    logger.debug(`Visiting ${currentPath}.nested[${key}]`);
-                }
+                logger.debug(`Visiting ${currentPath}.nested[${key}]`);
                 const currentNested = nested.nested[key];
                 this.visit({
                     nested: currentNested,
@@ -573,11 +571,7 @@ export default class GrpcHandler implements MeshHandler {
             const enumValues: Record<string, EnumTypeComposerValueConfigDefinition> = {};
             const commentMap = (nested as any).comments;
             for (const [key, value] of Object.entries(nested.values)) {
-                if (Array.isArray(currentPath)) {
-                    logger.debug(`Visiting ${currentPath.join('.')}.nested.values[${key}]`);
-                } else if (typeof currentPath === 'string') {
-                    logger.debug(`Visiting ${currentPath}.nested.values[${key}]`);
-                }
+                logger.debug(`Visiting ${currentPath}.nested.values[${key}]`);
                 enumValues[key] = {
                     directives: [
                         {
@@ -600,7 +594,9 @@ export default class GrpcHandler implements MeshHandler {
             const inputTypeName = typeName + '_Input';
             const outputTypeName = typeName;
             const description = (nested as any).comment;
-            const fieldEntries = Object.entries(nested.fields);
+            const fieldEntries = Object.entries(nested.fields) as Array<
+                [string, protobufjs.IField & { comment: string; keyType?: string }]
+            >;
             if (fieldEntries.length) {
                 const inputTC = this.schemaComposer.createInputTC({
                     name: inputTypeName,
@@ -612,7 +608,6 @@ export default class GrpcHandler implements MeshHandler {
                     description,
                     fields: {},
                 });
-                // @ts-expect-error
                 for (const [fieldName, { type, rule, comment, keyType }] of fieldEntries) {
                     logger.debug(`Visiting ${currentPath}.nested.fields[${fieldName}]`);
                     const baseFieldTypePath = type.split('.');

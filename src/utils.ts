@@ -1,18 +1,19 @@
-import { type SchemaComposer } from 'graphql-compose';
+import type { SchemaComposer } from 'graphql-compose';
 import lodashGet from 'lodash.get';
-import { type Root } from 'protobufjs';
+import type { Root } from 'protobufjs';
 import { fs, path as pathModule } from '@graphql-mesh/cross-helpers';
-import { stringInterpolator, type ResolverData } from '@graphql-mesh/string-interpolation';
+import type { ResolverData } from '@graphql-mesh/string-interpolation';
+import { stringInterpolator } from '@graphql-mesh/string-interpolation';
 import { withCancel } from '@graphql-mesh/utils';
-import {
-    Metadata,
-    type ClientDuplexStream,
-    type ClientReadableStream,
-    type ClientUnaryCall,
-    type MetadataValue,
+import type {
+    ClientDuplexStream,
+    ClientReadableStream,
+    ClientUnaryCall,
+    MetadataValue,
 } from '@grpc/grpc-js';
+import { Metadata } from '@grpc/grpc-js';
 import { deserializeGoogleGrpcStatusDetails } from '@q42philips/node-grpc-error-details';
-import { getGraphQLScalar, isScalarType } from './scalars';
+import { getGraphQLScalar, isScalarType } from './scalars.js';
 
 export function getTypeName(
     schemaComposer: SchemaComposer,
@@ -68,7 +69,6 @@ export async function addMetaDataToCall(
     if (!isBlob(input)) {
         callFnArguments.push(input);
     }
-
     if (metaData) {
         const meta = new Metadata();
         for (const [key, value] of Object.entries(metaData)) {
@@ -94,6 +94,7 @@ export async function addMetaDataToCall(
     if (resolverData?.context) {
         callFnArguments.push({ ...resolverData.context, deadline: Date.now() + deadline });
     }
+
     return new Promise((resolve, reject) => {
         const call: ClientDuplexStream<any, any> = callFn(
             ...callFnArguments,
